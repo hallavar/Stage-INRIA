@@ -6,14 +6,14 @@ Created on Mon Feb 22 11:36:24 2021
 """
 
 import glob
-
+from datetime import datetime
 from utils import create_checkpoint
-from data_extraction import batch_of_raw_pkt
+from data_extraction import DataGenerator
 
 create_checkpoint()
 
-file_path='../dataset/cic-ids-2018/Original Network Traffic and Log data'
-file_list=glob.glob(file_path+'/*/pcap/*')
+file_path='E:/stageINRIA/dataset/cic-ids-2018/labelled'
+file_list=glob.glob(file_path+'/*/*/pcap/*')
 file =file_list[3]
 
 
@@ -24,6 +24,11 @@ def verify_pcap_organization(pcap):
         a=b
         b=pcap.read_packet().time
         print(b-a)
-        
-batch=batch_of_raw_pkt(file, 64, 'hex')
-print(batch)
+
+def get_pckt_time(pkt):
+    time=datetime.fromtimestamp(float(pkt.time))
+    return str(time)
+
+img_size = (28, 28)
+
+generator = DataGenerator(file_path, img_size, 2, 16, 34, 512, 2)

@@ -14,7 +14,7 @@ def create_checkpoint():
     today = str(date.today())
     print("Today's date:", today)
     
-    savepath= '../checkpoints'
+    savepath= '../../checkpoints'
     checkpoints=listdir(savepath)
     print("Number of versions :", len(checkpoints))
     
@@ -27,13 +27,16 @@ def create_checkpoint():
     
 def get_closest_factors(x): #Given c, find a, b such that a*b=c and return the closest a,b each others
     l=[]
-    for i in range(1, x + 1):
-        if x % i == 0:
-            l.append(i)
-    if len(l) % 2 != 0:
-        return l[int(len(l)/2)+1]
+    if int(np.sqrt(x)) == np.sqrt(x):
+        return int(np.sqrt(x))
     else:
-        return l[int(len(l)/2)]
+        for i in range(1, x + 1):
+            if x % i == 0:
+                l.append(i)
+        if len(l) % 2 != 0:
+            return l[int(len(l)/2)+1]
+        else:
+            return l[int(len(l)/2)]
     
 def hexa_repartition(h, w):
     res=np.zeros(2)
