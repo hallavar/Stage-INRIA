@@ -8,11 +8,13 @@ Created on Mon Feb 22 11:36:24 2021
 import glob
 from datetime import datetime
 from utils import create_checkpoint
-from data_extraction import DataGenerator
+from data_extraction import DataGenerator2
+from data_generation import create_dataset_from_pcap
 
 create_checkpoint()
 
 file_path='E:/stageINRIA/dataset/cic-ids-2018/labelled'
+file_path='E:/stageINRIA/dataset/cic-ids-2018'
 file_list=glob.glob(file_path+'/*/*/pcap/*')
 file =file_list[3]
 
@@ -31,4 +33,9 @@ def get_pckt_time(pkt):
 
 img_size = (28, 28)
 
-generator = DataGenerator(file_path, img_size, 2, 16, 34, 512, 2)
+path_source='E:/stageINRIA/dataset/cic-ids-2018/splitted'
+path_dest='E:/stageINRIA/dataset/cic-ids-2018/preprocessed'
+
+generator = DataGenerator2(path_dest, img_size, 2, 16, 64)
+
+#create_dataset_from_pcap(path_source, path_dest)
