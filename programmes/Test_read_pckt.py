@@ -11,12 +11,12 @@ from utils import create_checkpoint
 from data_extraction import DataGenerator2
 from data_generation import create_dataset_from_pcap
 
-create_checkpoint()
+#create_checkpoint()
 
-file_path='E:/stageINRIA/dataset/cic-ids-2018/labelled'
-file_path='E:/stageINRIA/dataset/cic-ids-2018'
-file_list=glob.glob(file_path+'/*/*/pcap/*')
-file =file_list[3]
+# file_path='E:/stageINRIA/dataset/cic-ids-2018/labelled'
+# file_path='E:/stageINRIA/dataset/cic-ids-2018'
+# file_list=glob.glob(file_path+'/*/*/pcap/*')
+# file =file_list[3]
 
 
 def verify_pcap_organization(pcap):
@@ -34,7 +34,7 @@ def get_pckt_time(pkt):
 img_size = (28, 28)
 
 path_source='E:/stageINRIA/dataset/cic-ids-2018/splitted'
-path_dest='E:/stageINRIA/dataset/cic-ids-2018/preprocessed'
+path_dest='/home/hallavar/Documents/splitted/preprocessed'
 
 generator = DataGenerator2(path_dest, img_size, 2, 16, 64)
 

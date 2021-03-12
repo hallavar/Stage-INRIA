@@ -8,11 +8,11 @@ import os
 import re
 import glob
 import random
-import cv2
+#import cv2
 import numpy as np
 import tensorflow.keras as keras
 from scapy.all import PcapReader #Maybe you will have to use PcapNgReader instead
-from boltons import iterutils
+#from boltons import iterutils
 from utils import hexa_repartition, get_closest_factors
 
 def batch_of_raw_pkt(file, batch_size=64, t='hex'):
@@ -111,7 +111,7 @@ class DataGenerator2(keras.utils.Sequence):
         self.w = w
         self.batch_size = batch_size
         self.labels = os.listdir(path)
-        self.file_list=glob.glob(path+'/*/*/*/*.bin')
+        self.file_list=glob.glob(path+'/*/*.bin')
         self.shape = shape
         self.shuffle=shuffle
         self.indexes = np.arange(len(self.file_list))
