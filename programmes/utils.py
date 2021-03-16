@@ -9,6 +9,7 @@ import numpy as np
 from os import listdir
 from datetime import date
 from distutils.dir_util import copy_tree
+from scapy.all import Ether
 
 def create_checkpoint():
     today = str(date.today())
@@ -43,3 +44,9 @@ def hexa_repartition(h, w):
     res[0]=int(h[0],w)*w+w/2
     res[1]=int(h[1],w)*w+w/2
     return res
+
+def hexli_to_packet(l):
+    n=''
+    for x in l:
+        n+=x
+    return Ether(bytes.fromhex(n))

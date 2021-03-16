@@ -52,6 +52,20 @@ def convert_sequ_to_image(li,d=2,w=16):
             count+=1# we go to the next value to map
     return np.asarray(img)
 
+def convert_image_to_sequ(img,d=2,w=16):
+    new_image=np.zeros((int(np.shape(img)[0]/d),int(np.shape(img)[1]/d)))
+    for i in range(np.shape(img)[0]):
+        for j in range(np.shape(img)[1]):
+            if i % d == 0 and j % d == 0:
+                new_image[int(i/d), int(j/d)]=img[i,j]
+    l=new_image.flatten()
+    l=l//w
+    u=np.asarray([l[2*p]*w+l[2*p+1] for p in range(int(len(l)/2))])
+    u=u.astype('int32')
+    u = [format(i,'02x') for i in u]
+    return u
+        
+
 class DataGenerator(keras.utils.Sequence):
     
     def __init__(self, path, shape, d, w, suppr=34, batch_size=5, n_classes=2):
