@@ -120,19 +120,19 @@ class DataGenerator(keras.utils.Sequence):
         
 class DataGenerator2(keras.utils.Sequence):
     
-    def __init__(self, path, shape, d, w, batch_size=5, shuffle=True):
+    def __init__(self, paths, shape, d, w, batch_size=5, shuffle=True):
         self.d = d
         self.w = w
         self.batch_size = batch_size
-        self.labels = os.listdir(path)
-        self.file_list=glob.glob(path+'/*/*.bin')
+        self.labels=os.listdir(os.path.dirname(paths[0]))
+        self.file_list=paths
         self.shape = shape
         self.shuffle=shuffle
         self.indexes = np.arange(len(self.file_list))
         self.on_epoch_end()
         
     def __len__(self):
-        return int(np.floor(len(self.file_list) / self.batch_size))
+        return int(np.ceil(len(self.file_list) / self.batch_size))
  
     # def __getitem__(self, index):
     #     samples=self.remnant[0]

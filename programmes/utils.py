@@ -49,4 +49,4 @@ def hexli_to_packet(l):
     n=''
     for x in l:
         n+=x
-    return Ether(bytes.fromhex(n))
+    return bytes.fromhex(n)
