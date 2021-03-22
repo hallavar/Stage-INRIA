@@ -10,7 +10,8 @@ import glob
 import random
 #import cv2
 import numpy as np
-import tensorflow.keras as keras
+import torch
+from tensorflow import keras
 from scapy.all import PcapReader #Maybe you will have to use PcapNgReader instead
 #from boltons import iterutils
 from utils import hexa_repartition, get_closest_factors
@@ -182,3 +183,112 @@ class DataGenerator2(keras.utils.Sequence):
         self.indexes = np.arange(len(self.file_list))
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
+
+class DataGenerator3(keras.utils.Sequence):
+    
+    def __init__(self, paths_dict, N, shape, d, w, batch_size=5, shuffle=True):
+        self.d = d
+        self.w = w
+        self.batch_size = batch_size
+        self.labels=os.listdir(os.path.dirname(paths[0]))
+        self.file_dict=paths
+        self.N=N
+        self.shape = shape
+        self.shuffle=shuffle
+        self.on_epoch_end()
+    
+    def __len__(self):
+        return int(np.ceil(N/self.batch_size))
+         
+    def __getitem__(self, index):
+        list_file_temp=[]
+        for i in self.batch_size:
+            lbl=random.choice(self.file_dict.values)
+            day=random.choice(lbl.values)
+            pcap=random.choice(day)
+            n=int(N/8000) # 8000 : aproximately the number of directory in a given day
+            rdm = random.randint(0, n)
+            name=pcap+'\\'+pcap.split('\\')[-1]+'_'+str(rdm)+'.bin'
+            while os.path.isfile(name)==False:
+                rdm = random.randint(0, n)
+                name=pcap+'\\'+pcap.split('\\')[-1]+'_'+str(rdm)+'.bin'
+            list_file_temp.append(name)
+        X, y = self.__data_generation(list_file_temp)
+        return X, y
+    
+    def __data_generation(self, list_file_temp):
+        labels=[]
+        samples=[]
+        ratio=int(np.prod(self.shape)/(2*self.d**2))
+        for path in list_file_temp:
+            label=[1 if cl in path else 0 for cl in self.labels]
+            sample=open(path, 'rb').read()
+            li=sample.hex()
+            li=re.findall('..',li)
+            li=li[:ratio] #We pick the n/d² first ones with n the size of the matrix
+            li=li+['00']*(ratio-len(li)) #padding
+            img=convert_sequ_to_image(li, self.d, self.w) #create the image from the sequences
+            samples.append(img)
+            labels.append(np.asarray(label))
+        return np.asarray(samples), np.asarray(labels)
+    
+class DataGenerator4(torch.utils.data.Dataset):
+    
+    def __init__(self, path, N, limit, shape, d, w, batch_size=5, shuffle=True):
+        self.d = d
+        self.w = w
+        self.batch_size = batch_size
+        self.labels=['Benign']
+        self.list_pcap=[os.path.join(path,name) for name in os.listdir(path)][:limit]
+        self.N=N
+        self.shape = shape
+        self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.last=os.path.join(self.list_pcap[0],os.listdir(self.list_pcap[0])[0])
+    
+    def __len__(self):
+        return int(np.ceil(self.N/self.batch_size))
+         
+    def __getitem__(self, index):
+        list_file_temp=[]
+        folder, name = os.path.split(self.last)
+        name, nbr=name.split('.bin')[0].split('_')
+        for i in range(self.batch_size):
+            nbr = str(int(nbr)+1)
+            temp_path=os.path.join(folder,name+'_'+nbr+'.bin')
+            if os.path.isfile(temp_path)==False:
+                step=self.list_pcap.index(folder)
+                if step+1 == len(self.list_pcap):
+                    #self.last=os.listdir(self.list_pcap[self.list_pcap.index(folder)+1])[0]
+                    break
+                folder=self.list_pcap[step+1]
+                name=os.path.split(folder)[1]+'_1.bin'
+                nbr='1'
+                nbr = str(int(nbr)+1)
+                temp_path=os.path.join(folder,name)
+            list_file_temp.append(temp_path)
+        X, y = self.__data_generation(list_file_temp)
+        self.last=list_file_temp[-1]
+        print(list_file_temp[-1])
+        return self.__transform_to_pytorch(X), torch.from_numpy(y)
+    
+    def __data_generation(self, list_file_temp):
+        labels=[]
+        samples=[]
+        ratio=int(np.prod(self.shape)/(2*self.d**2))
+        for path in list_file_temp:
+            label=[1 if cl in path else 0 for cl in self.labels]
+            sample=open(path, 'rb').read()
+            li=sample.hex()
+            li=re.findall('..',li)
+            li=li[:ratio] #We pick the n/d² first ones with n the size of the matrix
+            li=li+['00']*(ratio-len(li)) #padding
+            img=convert_sequ_to_image(li, self.d, self.w) #create the image from the sequences
+            samples.append(img)
+            labels.append(np.asarray(label))
+        return np.asarray(samples), np.asarray(labels)
+    
+    def __transform_to_pytorch(self, X):
+        X = torch.from_numpy(X/255).float()
+        X=X.unsqueeze(1)
+        X=X.to(self.device)
+        return X

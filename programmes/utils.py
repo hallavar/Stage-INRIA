@@ -50,3 +50,16 @@ def hexli_to_packet(l):
     for x in l:
         n+=x
     return bytes.fromhex(n)
+
+def split_path(path):
+    folders = []
+    while 1:
+        path, folder = os.path.split(path)
+
+        if folder != "":
+            folders.append(folder)
+        elif path != "":
+            folders.append(path)
+            break
+
+    return folders.reverse()
