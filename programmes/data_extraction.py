@@ -313,7 +313,7 @@ class DataGenerator5(torch.utils.data.Dataset):
         for l in self.labels:
         	for day in ld:
         		name=os.path.join(day,l)+'_'+str(index)+'.bin'
-        		if os.path.isfile : 
+        		if os.path.isfile(name) : 
         			sample=open(name, 'rb').read()
         			label=[1 if cl in name else 0 for cl in self.labels]
         		else:

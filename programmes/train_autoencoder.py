@@ -24,13 +24,13 @@ from time import sleep
 # from sklearn.model_selection import train_test_split
 
 # from data_extraction import DataGenerator2
-from data_extraction import DataGenerator4
+from data_extraction import DataGenerator5
 from models.vq_vae import VQVAE
 if __name__ == '__main__':
-    torch.multiprocessing.freeze_support()
-    path="..\..\dataset\cic-ids-2018\preprocessed\Benign\Friday-02-03-2018"
-    list_pcap=os.listdir(path)
-    list_pcap=[os.path.join(path,name) for name in list_pcap]
+    #torch.multiprocessing.freeze_support()
+    path="..\..\dataset\cic-ids-2018\preprocessed"
+    labels=os.listdir(path)
+    #list_pcap=[os.path.join(path,name) for name in list_pcap]
     
     # list_label=glob.glob(path)
     # list_days=[]
@@ -54,9 +54,9 @@ if __name__ == '__main__':
     #training_data, validation_data = train_test_split(data)
     
     
-    training_generator=DataGenerator4(path, nb_files, limit, img_shape, 2, 16, train_batch_size)
+    training_generator=DataGenerator5(path, labels, limit, img_shape, 2, 16)
     #validation_generator=DataGenerator2(validation_data, img_shape, 2, 16, validation_batch_size)
-    training_generator=DataLoader(training_generator, batch_size=1, shuffle=False, num_workers=0)
+    #training_generator=DataLoader(training_generator, batch_size=1, shuffle=False, num_workers=0)
     
     def training_step(self, batch, batch_size, len_training_set):
             real_img, labels = batch
@@ -119,4 +119,4 @@ if __name__ == '__main__':
     
     
     
-    model = train(model, training_generator, optimizer, num_epochs)
+    #model = train(model, training_generator, optimizer, num_epochs)
