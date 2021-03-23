@@ -308,12 +308,13 @@ class DataGenerator5(torch.utils.data.Dataset):
         return self.N
          
     def __getitem__(self, index):
-        ld=[os.path.join(path,d) for d in os.listdir(self.path)]
+        ratio=int(np.prod(self.shape)/(2*self.d**2))
+        ld=[os.path.join(self.path,d) for d in os.listdir(self.path)]
         for l in self.labels:
         	for day in ld:
         		name=os.path.join(day,l)+'_'+str(index)+'.bin'
         		if os.path.isfile : 
-        			sample=open(path, 'rb').read()
+        			sample=open(name, 'rb').read()
         			label=[1 if cl in name else 0 for cl in self.labels]
         		else:
         			sample = None
