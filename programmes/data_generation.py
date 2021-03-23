@@ -10,24 +10,26 @@ from scapy.all import PcapReader
 from data_extraction import convert_pkt_to_bytes_sequ
 
 def create_dataset_from_pcap(path_source, path_dest):
-    list_pcap=glob.glob(path_source+'/*/*/*.pcap')
-    create_empty_dirtree(path_source, path_dest)
+    list_pcap=glob.glob(path_source+'/*/*/*')
+    j=0
     for name in list_pcap:
-        j=0
         pcap=PcapReader(name)
         name=os.path.normpath(name)
-        name=os.sep.join(name.split(os.sep)[-3:])
-        filename=os.path.join(path_dest, name)
-        os.mkdir(filename)
+        name=name.split(os.sep)[-3:]
+        try:
+            os.mkdir(os.path.join(path_dest,name[:-2]))
+        except:
+            pass
+        filename=os.path.join(path_dest,name[-2],name[-3]+'_')
         while True:
-            j+=1
             try:
                 pkt=pcap.read_packet()
+                j+=1
             except EOFError:
                 break
             sequence=convert_pkt_to_bytes_sequ(pkt, suppr=None)
             sequence=bytes(pkt)
-            name=filename+'\\'+os.path.split(filename)[1]+'_'+str(j)+'.bin'
+            name=filename+str(j)+'.bin'
             print(name)
             with open(name, 'wb') as file:
                 file.write(sequence)

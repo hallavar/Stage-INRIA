@@ -292,3 +292,41 @@ class DataGenerator4(torch.utils.data.Dataset):
         X=X.unsqueeze(1)
         X=X.to(self.device)
         return X
+        
+class DataGenerator5(torch.utils.data.Dataset):
+    
+    def __init__(self, path, labels, N, shape, d, w):
+        self.d = d
+        self.w = w
+        self.path=path
+        self.labels=labels
+        self.N=N
+        self.shape = shape
+        self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    def __len__(self):
+        return self.N
+         
+    def __getitem__(self, index):
+        ld=[os.path.join(path,d) for d in os.listdir(self.path)]
+        for l in self.labels:
+        	for day in ld:
+        		name=os.path.join(day,l)+'_'+str(index)+'.bin'
+        		if os.path.isfile : 
+        			sample=open(path, 'rb').read()
+        			label=[1 if cl in name else 0 for cl in self.labels]
+        		else:
+        			sample = None
+        			label = None
+        li=sample.hex()
+        li=re.findall('..',li)
+        li=li[:ratio] #We pick the n/d² first ones with n the size of the matrix
+        li=li+['00']*(ratio-len(li)) #padding
+        img=convert_sequ_to_image(li, self.d, self.w) #create the image from the sequences
+        return self.__transform_to_pytorch(img), torch.from_numpy(np.asarray(label))
+    
+    def __transform_to_pytorch(self, X):
+        X = torch.from_numpy(X/255).float()
+        X=X.unsqueeze(1)
+        X=X.to(self.device)
+        return X
