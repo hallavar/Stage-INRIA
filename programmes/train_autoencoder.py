@@ -29,7 +29,7 @@ from models.vq_vae import VQVAE
 if __name__ == '__main__':
     #torch.multiprocessing.freeze_support()
     path="..\..\dataset\cic-ids-2018\preprocessed"
-    labels=os.listdir(path)
+    labels=['Benign', 'Malware']
     #list_pcap=[os.path.join(path,name) for name in list_pcap]
     
     # list_label=glob.glob(path)
@@ -44,19 +44,21 @@ if __name__ == '__main__':
     # list_label=dict(zip(range(len(list_label)),list_days))
         
     img_shape = (28,28)
-    train_batch_size=5000
-    # validation_batch_size=512
+    train_batch_size=64
+    validation_batch_size=512
     # data=glob.iglob(path+'/*/*/*/*.bin')
     #nb_files=84751439
     nb_files=1089370
-    limit=1
+    limit=1000
+    split=2/3
     
     #training_data, validation_data = train_test_split(data)
     
     
-    training_generator=DataGenerator5(path, labels, limit, img_shape, 2, 16)
-    #validation_generator=DataGenerator2(validation_data, img_shape, 2, 16, validation_batch_size)
-    #training_generator=DataLoader(training_generator, batch_size=1, shuffle=False, num_workers=0)
+    training_generator=DataGenerator5(path, labels, limit, split, 'train', img_shape, 2, 16)
+    validation_generator=DataGenerator5(path, labels, limit, split, 'test',img_shape, 2, 16)
+    training_generator=DataLoader(training_generator, batch_size=train_batch_size, shuffle=True, num_workers=0)
+    validation_generator=DataLoader(validation_generator, batch_size=validation_batch_size, shuffle=True, num_workers=0)
     
     def training_step(self, batch, batch_size, len_training_set):
             real_img, labels = batch
@@ -71,36 +73,30 @@ if __name__ == '__main__':
             
             return train_loss
     
-    def train(model, training_data, optimizer, num_epochs):  
+    def train(model, training_data, validation_data, optimizer, num_epochs):  
+        validation_loss=0
         for epoch in range(num_epochs):
-            with tqdm(training_generator, unit="batch") as tepoch:
-                tepoch.set_description(f"Epoch {epoch}")
-                train_loss=0
-                model.train()
-                # ====================training=====================
-                for data in training_data:
-                    # ===================forward====================
-                    loss = model.training_step(data, len(data[0]), 1/len(training_data))
-                    train_loss+=loss['loss']
-                    # ===================backward====================
-                    optimizer.zero_grad()
-                    loss['loss'].backward()
-                    optimizer.step()
-                    tepoch.set_postfix(loss=loss['loss'].item())
-                    sleep(0.1)
+            loop = tqdm(training_data)
+            train_loss=0
+            model.train()
+            # ====================training=====================
+            for idx, data in enumerate(loop):
+                # ===================forward====================
+                loss = model.training_step(data, len(data[0]), 1/len(training_data))
+                train_loss+=loss['loss']
+                # ===================backward====================
+                optimizer.zero_grad()
+                loss['loss'].backward()
+                optimizer.step()
+                loop.set_description(f'Epoch [{epoch}/{num_epochs}]')
+                loop.set_postfix(loss=train_loss.data.item(), validation_loss=validation_loss)
             # ====================validation=====================
-            # validation_loss=0
-            # model.eval()
-            # for data in validation_data:
-            #     # ===================forward=====================
-            #     loss = model.training_step(data, len(data[0]), 1/len(validation_data))
-            #     validation_loss+=loss['loss']
-            # ===================log========================
-            train_loss=train_loss / len(training_generator)
-            # validation_loss=validation_loss / len(validation_generator)
-        
-            print('epoch [{}/{}], train_loss:{:.4f}'#, validation_loss:{:.4f}'
-                  .format(epoch + 1, num_epochs, train_loss.data.item()))#, validation_loss.data.item()))
+            validation_loss=0
+            model.eval()
+            for data in validation_data:
+                # ===================forward=====================
+                loss = model.training_step(data, len(data[0]), 1/len(validation_data))
+                validation_loss+=loss['loss'].data.item()
         return model
     
     embedding_dim=20
@@ -119,4 +115,4 @@ if __name__ == '__main__':
     
     
     
-    #model = train(model, training_generator, optimizer, num_epochs)
+    model = train(model, training_generator, validation_generator, optimizer, num_epochs)

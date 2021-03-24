@@ -295,30 +295,42 @@ class DataGenerator4(torch.utils.data.Dataset):
         
 class DataGenerator5(torch.utils.data.Dataset):
     
-    def __init__(self, path, labels, N, shape, d, w):
-        self.d = d
-        self.w = w
+    def __init__(self, path, labels, N, split, t, shape, d, w):
         self.path=path
         self.labels=labels
         self.N=N
+        self.split=split
+        self.type=t
         self.shape = shape
+        self.d = d
+        self.w = w
         self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     def __len__(self):
-        return self.N
+        if self.type=='train':
+            return self.N
+        if self.type=='test':
+            return self.N-int(self.N*self.split)
          
     def __getitem__(self, index):
+        if self.type=='test':
+            index+=int(self.N*self.split)
         ratio=int(np.prod(self.shape)/(2*self.d**2))
         ld=[os.path.join(self.path,d) for d in os.listdir(self.path)]
         for l in self.labels:
-        	for day in ld:
-        		name=os.path.join(day,l)+'_'+str(index)+'.bin'
-        		if os.path.isfile(name) : 
-        			sample=open(name, 'rb').read()
-        			label=[1 if cl in name else 0 for cl in self.labels]
-        		else:
-        			sample = None
-        			label = None
+            find=False
+            for day in ld:
+                name=os.path.join(day,l)+'_'+str(index+1)+'.bin'
+                if os.path.isfile(name) : 
+                    sample=open(name, 'rb').read()
+                    label=[1 if cl in name else 0 for cl in self.labels]
+                    find = True
+                    break
+                else:
+                    sample = None
+                    label = None
+            if find:
+                break
         li=sample.hex()
         li=re.findall('..',li)
         li=li[:ratio] #We pick the n/d² first ones with n the size of the matrix
@@ -328,6 +340,6 @@ class DataGenerator5(torch.utils.data.Dataset):
     
     def __transform_to_pytorch(self, X):
         X = torch.from_numpy(X/255).float()
-        X=X.unsqueeze(1)
+        X=X.unsqueeze(0)
         X=X.to(self.device)
         return X
