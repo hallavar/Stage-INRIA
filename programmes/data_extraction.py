@@ -11,8 +11,8 @@ import random
 #import cv2
 import numpy as np
 import torch
-from tensorflow import keras
-from scapy.all import PcapReader #Maybe you will have to use PcapNgReader instead
+#from tensorflow import keras
+#from scapy.all import PcapReader #Maybe you will have to use PcapNgReader instead
 #from boltons import iterutils
 from utils import hexa_repartition, get_closest_factors
 
@@ -66,60 +66,8 @@ def convert_image_to_sequ(img,d=2,w=16):
     u = [format(i,'02x') for i in u]
     return u
         
-
-class DataGenerator(keras.utils.Sequence):
     
-    def __init__(self, path, shape, d, w, suppr=34, batch_size=5, n_classes=2):
-        self.d = d
-        self.w = w
-        self.batch_size = batch_size
-        self.n_classes = n_classes
-        self.file_list=glob.glob(path+'/*/*/pcap/*')[300:]
-        self.shape = shape
-        self.suppr = suppr
-        self.remnant=[[],[]]
-        self.on_epoch_end()
- 
-    # def __getitem__(self, index):
-    #     samples=self.remnant[0]
-    #     labels=self.remnant[1]
-    #     while len(samples)<self.batch_size:
-    #         pcap=random.choice(self.pcap_list)
-    #         pkt=pcap.read_packet()
-    #         label=get_label(pcap, os.path.commonpath(self.file_list))
-    #         li=convert_pkt_to_bytes_sequ(pkt, self.suppr)
-    #         li=iterutils.chunked(li, 0.5*np.prod(self.shape)/self.d**2)
-    #         li=li[:(self.batch_size-len(samples))]
-    #         last=li[len(li)-1]
-    #         for i in range(0, len(li)):
-    #             img=convert_sequ_to_image(li[i], self.d, self.w)
-    #             samples.append(img)
-    #             labels.append(label)
-    #         if len(last) < 0.5*np.prod(self.shape)/self.d**2:
-    #             # new_pad=np.sqrt(0.5*np.prod(self.shape)/len(last))
-    #             # img=convert_sequ_to_image(last, round(new_pad), self.w)
-    #             img = cv2.resize(img, self.shape)
-    #             samples[len(samples)-1] = img
-    
-    def __getitem__(self, index):
-        samples=[] #initialise the list of labels
-        labels=[] #initialise the list of labels
-        while len(samples)<self.batch_size: #We do this batch_size time
-            pcap=random.choice(self.pcap_list) #We choose a random pcap to draw a packet
-            pkt=pcap.read_packet() #We pick a packet from the randomly selected pcap
-            label=get_label(pcap, os.path.commonpath(self.file_list)) #We get the label of the pcap
-            li=convert_pkt_to_bytes_sequ(pkt, self.suppr) #We transform the label into a list of hexadecimals
-            li=li[:np.prod(self.shape)/self.d**2] #We pick the n/d² first ones with n the size of the matrix
-            li=li+['00']*(np.prod(self.shape)*self.d**2-len(li)) #padding
-            img=convert_sequ_to_image(li, self.d, self.w) #create the image from the sequences
-            samples.append(img)
-            labels.append(label)
-        return np.asarray(samples), np.asarray(labels) #get the batch
-    
-    def on_epoch_end(self):
-        self.pcap_list=[PcapReader(file) for file in self.file_list if file.find('.lnk')==-1]
-        
-class DataGenerator2(keras.utils.Sequence):
+class DataGenerator2():
     
     def __init__(self, paths, shape, d, w, batch_size=5, shuffle=True):
         self.d = d
@@ -184,7 +132,7 @@ class DataGenerator2(keras.utils.Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
-class DataGenerator3(keras.utils.Sequence):
+class DataGenerator3():
     
     def __init__(self, paths_dict, N, shape, d, w, batch_size=5, shuffle=True):
         self.d = d
@@ -343,3 +291,98 @@ class DataGenerator5(torch.utils.data.Dataset):
         X=X.unsqueeze(0)
         X=X.to(self.device)
         return X
+    
+class DataGenerator6(torch.utils.data.Dataset):
+    
+    def __init__(self, path, labels, N, split, t, shape, d, w):
+        self.path=path
+        self.labels=labels
+        self.split=int(N*split)
+        self.type=t
+        self.shape = shape
+        self.d = d
+        self.w = w
+        self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if t=='train':
+            self.N = self.split
+        if t=='test':
+            self.N = N - self.split
+        self.list_files=[]
+        for i in range(self.N):
+                self.list_files.append(self.getdata(i))
+                print(len(self.list_files))
+    
+    def __len__(self):
+        return self.N
+         
+    def getdata(self, index):
+        if self.type=='test':
+            index+=self.split
+        ratio=int(np.prod(self.shape)/(2*self.d**2))
+        ld=[os.path.join(self.path,d) for d in os.listdir(self.path)]
+        for l in self.labels:
+            find=False
+            for day in ld:
+                name=os.path.join(day,l)+'_'+str(index+1)+'.bin'
+                if os.path.isfile(name) : 
+                    sample=open(name, 'rb').read()
+                    label=[1 if cl in name else 0 for cl in self.labels]
+                    find = True
+                    break
+                else:
+                    sample = None
+                    label = None
+            if find:
+                break
+        li=sample.hex()
+        li=re.findall('..',li)
+        li=li[:ratio] #We pick the n/d² first ones with n the size of the matrix
+        li=li+['00']*(ratio-len(li)) #padding
+        img=convert_sequ_to_image(li, self.d, self.w) #create the image from the sequences
+        return img, np.asarray(np.argmax(np.asarray(label),axis=0))
+    
+    def __getitem__(self, index):
+        img, label = self.list_files[index]
+        return self.transform_to_pytorch(img), torch.from_numpy(label)
+    
+    def transform_to_pytorch(self, X):
+        X = torch.from_numpy(X/255).float()
+        X=X.unsqueeze(0)
+        X=X.to(self.device)
+        return X
+        
+class DataGenerator_UDP(torch.utils.data.Dataset):
+    
+    def __init__(self, path, labels, N, shape, d, w):
+        self.path=path
+        self.labels=labels
+        self.shape = shape
+        self.list_name=glob.glob(path+'/*/*.bin')[:N]
+        self.d = d
+        self.w = w
+        self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.N=N
+
+    def __len__(self):
+        return len(self.list_name)
+         
+    def __getitem__(self, index):
+        name = self.list_name[index]
+        ratio=int(np.prod(self.shape)/(2*self.d**2))
+        sample=open(name, 'rb').read()
+        label=[1 if cl in name else 0 for cl in self.labels]
+        li=sample.hex()
+        li=re.findall('..',li)
+        li=li[:ratio]
+        li=li+['00']*(ratio-len(li))
+        img=convert_sequ_to_image(li, self.d, self.w)
+        label=np.asarray(label)
+        return self.transform_to_pytorch(img), torch.from_numpy(label)
+    
+    def transform_to_pytorch(self, X):
+        X = torch.from_numpy(X/255).float()
+        X=X.unsqueeze(0)
+        X=X.to(self.device)
+        return X
+
+
